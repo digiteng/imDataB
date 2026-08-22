@@ -4,16 +4,19 @@ import json
 import os
 import requests
 
-# --- BU SATIRLARI DÜZELTİN ---
-basics_url = "https://imdbws.com"
-ratings_url = "https://imdbws.com"
-# ------------------------------
+# ⚡ GİTHUB ACTIONS IPv6 BAĞLANTI HATASINI ÇÖZEN KRİTİK YAMA (Sadece IPv4 Zorlar)
+import urllib3.util.connection as urllib3_cn
+def allowed_gai_family():
+    import socket
+    return socket.AF_INET # Sadece IPv4 aktiftir, IPv6'yı tamamen kapatır
+urllib3_cn.allowed_gai_family = allowed_gai_family
 
+basics_url = "https://datasets.imdbws.com/title.basics.tsv.gz"
+ratings_url = "https://imdbws.com"
 output_file = "imdb_index.json"
 
 def download_file(url, filename):
     print(f"📥 {filename} indiriliyor...")
-    # Akış (stream) modunda indirerek bağlantı kopmalarını engelliyoruz
     with requests.get(url, stream=True, headers={'User-Agent': 'Mozilla/5.0'}) as r:
         r.raise_for_status()
         with open(filename, 'wb') as f:
@@ -33,7 +36,7 @@ with gzip.open("ratings.tsv.gz", mode="rt", encoding="utf-8") as f:
     reader = csv.reader(f, delimiter="\t")
     next(reader)
     for row in reader:
-        ratings_db[row[0]] = (row[1], row[2])
+        ratings_db[row] = (row, row)
 os.remove("ratings.tsv.gz")
 
 print("⚡ Veriler birleştiriliyor ve JSON formatına yazılıyor...")
@@ -46,14 +49,14 @@ with open(output_file, "w", encoding="utf-8") as out:
         
         first = True
         for row in reader:
-            tconst = row[0]
+            tconst = row
             if tconst in ratings_db:
                 rating, votes = ratings_db[tconst]
                 
                 movie_data = {
-                    "t": row[2],  # primaryTitle
-                    "y": row[5] if row[5] != "\\N" else "",  # startYear
-                    "g": row[8] if row[8] != "\\N" else "",  # genres
+                    "t": row,
+                    "y": row if row != "\\N" else "",
+                    "g": row if row != "\\N" else "",
                     "r": rating,
                     "v": votes
                 }
