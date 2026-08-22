@@ -37,9 +37,8 @@ with gzip.open("ratings.tsv.gz", mode="rt", encoding="utf-8") as f:
     reader = csv.reader(f, delimiter="\t")
     next(reader)
     for row in reader:
-        # HATA DÜZELTİLDİ: row -> row[0] (tconst) anahtar olarak seçildi
-        # row[1] -> averageRating, row[2] -> numVotes
-        ratings_db[row[0]] = (row[1], row[2])
+        if len(row) >= 3:
+            ratings_db[row[0]] = (row[1], row[2])
 
 os.remove("ratings.tsv.gz")
 print("✅ Puanlar hafızaya alındı. Geçici dosya silindi.")
@@ -54,14 +53,24 @@ with open(output_file, "w", encoding="utf-8") as out:
         
         first = True
         for row in reader:
+            # Kritik Koruma: Eğer satır tamamen boşsa veya ID sütunu yoksa atla
+            if not row or len(row) < 1:
+                continue
+                
             tconst = row[0]
             if tconst in ratings_db:
                 rating, votes = ratings_db[tconst]
                 
+                # 🛡️ Dinamik Sütun Güvenliği: Eksik indexler için çökmesi engellendi
+                # Eğer satırda o index yoksa doğrudan boş string atanır
+                title = row[2] if len(row) > 2 else ""
+                year = row[5] if len(row) > 5 else ""
+                genres = row[8] if len(row) > 8 else ""
+                
                 movie_data = {
-                    "t": row[2],  # primaryTitle
-                    "y": row[5] if row[5] != "\\N" else "",  # startYear
-                    "g": row[8] if row[8] != "\\N" else "",  # genres
+                    "t": title if title != "\\N" else "",
+                    "y": year if year != "\\N" else "",
+                    "g": genres if genres != "\\N" else "",
                     "r": rating,
                     "v": votes
                 }
