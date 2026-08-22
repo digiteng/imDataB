@@ -11,8 +11,8 @@ def allowed_gai_family():
     return socket.AF_INET
 urllib3_cn.allowed_gai_family = allowed_gai_family
 
-basics_url = "https://imdbws.com"
-ratings_url = "https://imdbws.com"
+basics_url = "https://datasets.imdbws.com/title.basics.tsv.gz"
+ratings_url = "https://datasets.imdbws.com/title.ratings.tsv.gz"
 output_file = "imdb_index.json"
 
 def download_file(url, filename):
