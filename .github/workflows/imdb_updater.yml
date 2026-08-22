@@ -36,7 +36,7 @@ jobs:
     - name: JSON Dosyasını GitHub Releases'e Yükle
       uses: softprops/action-gh-release@v2
       with:
-        files: imdb_index.json
+        files: imdb_complete.db
         tag_name: v-${{ steps.date.outputs.date }}
         name: IMDb Data (${{ steps.date.outputs.date }})
         body: Enigma2 için internet üzerinden anlık sorgulanabilir hafif IMDb verisi.
