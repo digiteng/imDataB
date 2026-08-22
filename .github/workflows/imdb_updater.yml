@@ -1,12 +1,12 @@
-name: IMDb Auto DB Updater
+name: IMDb Auto JSON Updater
 
 on:
   schedule:
     - cron: '0 0 * * 0' # Her Pazar saat 00:00'da otomatik çalışır
-  workflow_dispatch: # Manuel tetikleme butonu ekler
+  workflow_dispatch: # Manuel tetikleme butonu
 
 permissions:
-  contents: write # GitHub Releases'e dosya yükleyebilmek için gerekli izin
+  contents: write
 
 jobs:
   build:
@@ -21,19 +21,17 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Veritabanını Dönüştür
+    - name: İndeks Oluştur
       run: python convert.py
 
     - name: Güncel Tarih Bilgisi Al
       id: date
       run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-    - name: Hazır DB Dosyasını GitHub Releases'e Yükle
+    - name: JSON Dosyasını GitHub Releases'e Yükle
       uses: softprops/action-gh-release@v2
       with:
-        files: imdb_complete.db
+        files: imdb_index.json
         tag_name: v-${{ steps.date.outputs.date }}
-        name: IMDb Database (${{ steps.date.outputs.date }})
-        body: |
-          Enigma2 için otomatik üretilmiş güncel IMDb veritabanı.
-          Oluşturulma Tarihi: ${{ steps.date.outputs.date }}
+        name: IMDb Data (${{ steps.date.outputs.date }})
+        body: Enigma2 için internet üzerinden anlık sorgulanabilir hafif IMDb verisi.
