@@ -4,8 +4,11 @@ import json
 import os
 import requests
 
+# --- BU SATIRLARI DÜZELTİN ---
 basics_url = "https://imdbws.com"
 ratings_url = "https://imdbws.com"
+# ------------------------------
+
 output_file = "imdb_index.json"
 
 def download_file(url, filename):
