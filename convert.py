@@ -4,6 +4,7 @@ import sqlite3
 import os
 import requests
 
+# ⚡ GitHub Actions IPv6 Bağlantı Yaması
 import urllib3.util.connection as urllib3_cn
 def allowed_gai_family():
     import socket
@@ -17,11 +18,15 @@ db_file = "imdb_complete.db"
 if os.path.exists(db_file):
     os.remove(db_file)
 
+# 1. Veritabanı Bağlantısı Açılışı
 conn = sqlite3.connect(db_file)
 cursor = conn.cursor()
+
+# SQLite Hız Optimizasyonları
 cursor.execute("PRAGMA synchronous = OFF;")
 cursor.execute("PRAGMA journal_mode = MEMORY;")
 
+# Tablo Şablonları
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS basics (
         tconst TEXT PRIMARY KEY,
@@ -49,10 +54,17 @@ def download_file(url, filename):
         with open(filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
+    print(f"✅ {filename} indirmesi tamamlandı.")
 
-download_file(basics_url, "basics.tsv.gz")
-download_file(ratings_url, "ratings.tsv.gz")
+# Dosyaları Sırayla İndir
+try:
+    download_file(basics_url, "basics.tsv.gz")
+    download_file(ratings_url, "ratings.tsv.gz")
+except Exception as e:
+    print(f"❌ İndirme hatası: {e}")
+    raise
 
+# 2. Reyting Verilerini RAM'e Alma
 ratings_db = {}
 print("⚡ Puanlar hafızaya alınıyor...")
 with gzip.open("ratings.tsv.gz", mode="rt", encoding="utf-8") as f:
@@ -62,8 +74,10 @@ with gzip.open("ratings.tsv.gz", mode="rt", encoding="utf-8") as f:
         if len(row) >= 3:
             ratings_db[row[0]] = (row[1], row[2])
 os.remove("ratings.tsv.gz")
+print("✅ Puanlar hafızaya alındı. Geçici ratings dosyası silindi.")
 
-print("⚡ Veritabanı oluşturuluyor...")
+# 3. Basics ve Ratings Verilerini SQL'e Yazma
+print("⚡ Veritabanı oluşturuluyor ve eşleştiriliyor...")
 with gzip.open("basics.tsv.gz", mode="rt", encoding="utf-8") as f:
     reader = csv.reader(f, delimiter="\t")
     next(reader)
@@ -71,7 +85,8 @@ with gzip.open("basics.tsv.gz", mode="rt", encoding="utf-8") as f:
     batch_ratings = []
     
     for row in reader:
-        if not row or len(row) < 1: continue
+        if not row or len(row) < 1: 
+            continue
         tconst = row[0]
         
         if tconst in ratings_db:
@@ -96,22 +111,16 @@ with gzip.open("basics.tsv.gz", mode="rt", encoding="utf-8") as f:
         cursor.executemany("INSERT OR REPLACE INTO ratings VALUES (?, ?, ?)", batch_ratings)
 
 os.remove("basics.tsv.gz")
+print("✅ Temel veriler SQL tablolarına başarıyla basıldı. Geçici basics dosyası silindi.")
 
-print("⚡ İndeksler oluşturuluyor...")
-cursor.execute("CREATE INDEX IF NOT EXISTS idx_basics_tconst ON basics(tconst);")
-cursor.execute("CREATE INDEX IF NOT EXISTS idx_ratings_tconst ON ratings(tconst);")
+# 4. Hızlı Arama İndekslerinin Oluşturulması (Bağlantı Açıkken Yapılır)
 print("⚡ Arama hızlandırma indeksleri oluşturuluyor...")
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_basics_tconst ON basics(tconst);")
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_ratings_tconst ON ratings(tconst);")
-
-# ⚡ YENİ: İsimle aramaları milisaniyelere düşüren kritik indeksler
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_basics_title ON basics(primaryTitle);")
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_basics_orig_title ON basics(originalTitle);")
 
+# 5. Kapatma ve Kilitleme İşlemleri
 conn.commit()
 conn.close()
-print("✅ SQLite veritabanı isim indeksleriyle başarıyla tamamlandı!")
-
-conn.commit()
-conn.close()
-print("✅ SQLite veritabanı başarıyla tamamlandı!")
+print("✅ SQLite veritabanı isim indeksleriyle birlikte başarıyla tamamlandı!")
