@@ -100,6 +100,17 @@ os.remove("basics.tsv.gz")
 print("⚡ İndeksler oluşturuluyor...")
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_basics_tconst ON basics(tconst);")
 cursor.execute("CREATE INDEX IF NOT EXISTS idx_ratings_tconst ON ratings(tconst);")
+print("⚡ Arama hızlandırma indeksleri oluşturuluyor...")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_basics_tconst ON basics(tconst);")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_ratings_tconst ON ratings(tconst);")
+
+# ⚡ YENİ: İsimle aramaları milisaniyelere düşüren kritik indeksler
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_basics_title ON basics(primaryTitle);")
+cursor.execute("CREATE INDEX IF NOT EXISTS idx_basics_orig_title ON basics(originalTitle);")
+
+conn.commit()
+conn.close()
+print("✅ SQLite veritabanı isim indeksleriyle başarıyla tamamlandı!")
 
 conn.commit()
 conn.close()
