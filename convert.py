@@ -1,16 +1,28 @@
 import gzip
 import csv
 import json
-import urllib.request
 import os
+import requests
 
 basics_url = "https://imdbws.com"
 ratings_url = "https://imdbws.com"
 output_file = "imdb_index.json"
 
-print("📥 IMDb verileri indiriliyor...")
-urllib.request.urlretrieve(basics_url, "basics.tsv.gz")
-urllib.request.urlretrieve(ratings_url, "ratings.tsv.gz")
+def download_file(url, filename):
+    print(f"📥 {filename} indiriliyor...")
+    # Akış (stream) modunda indirerek bağlantı kopmalarını engelliyoruz
+    with requests.get(url, stream=True, headers={'User-Agent': 'Mozilla/5.0'}) as r:
+        r.raise_for_status()
+        with open(filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+try:
+    download_file(basics_url, "basics.tsv.gz")
+    download_file(ratings_url, "ratings.tsv.gz")
+except Exception as e:
+    print(f"❌ İndirme sırasında hata oluştu: {e}")
+    raise
 
 ratings_db = {}
 print("⚡ Puanlar hafızaya alınıyor...")
@@ -18,11 +30,10 @@ with gzip.open("ratings.tsv.gz", mode="rt", encoding="utf-8") as f:
     reader = csv.reader(f, delimiter="\t")
     next(reader)
     for row in reader:
-        ratings_db[row[0]] = (row[1], row[2]) # rating, votes
+        ratings_db[row[0]] = (row[1], row[2])
 os.remove("ratings.tsv.gz")
 
 print("⚡ Veriler birleştiriliyor ve JSON formatına yazılıyor...")
-# Satır satır yazarak GitHub sunucusunun RAM'ini şişirmiyoruz
 with open(output_file, "w", encoding="utf-8") as out:
     out.write("{\n")
     
@@ -33,7 +44,6 @@ with open(output_file, "w", encoding="utf-8") as out:
         first = True
         for row in reader:
             tconst = row[0]
-            # Sadece puanı olan yapımları alarak dosyayı hafifletiyoruz
             if tconst in ratings_db:
                 rating, votes = ratings_db[tconst]
                 
