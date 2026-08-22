@@ -4,15 +4,15 @@ import json
 import os
 import requests
 
-# ⚡ GİTHUB ACTIONS IPv6 BAĞLANTI HATASINI ÇÖZEN KRİTİK YAMA (Sadece IPv4 Zorlar)
+# ⚡ GitHub Actions IPv6 Bağlantı Yaması
 import urllib3.util.connection as urllib3_cn
 def allowed_gai_family():
     import socket
-    return socket.AF_INET # Sadece IPv4 aktiftir, IPv6'yı tamamen kapatır
+    return socket.AF_INET
 urllib3_cn.allowed_gai_family = allowed_gai_family
 
-basics_url = "https://datasets.imdbws.com/title.basics.tsv.gz"
-ratings_url = "https://datasets.imdbws.com/title.ratings.tsv.gz"
+basics_url = "https://imdbws.com"
+ratings_url = "https://imdbws.com"
 output_file = "imdb_index.json"
 
 def download_file(url, filename):
@@ -22,6 +22,7 @@ def download_file(url, filename):
         with open(filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
+    print(f"✅ {filename} indirmesi tamamlandı.")
 
 try:
     download_file(basics_url, "basics.tsv.gz")
@@ -36,8 +37,12 @@ with gzip.open("ratings.tsv.gz", mode="rt", encoding="utf-8") as f:
     reader = csv.reader(f, delimiter="\t")
     next(reader)
     for row in reader:
-        ratings_db[row] = (row, row)
+        # HATA DÜZELTİLDİ: row -> row[0] (tconst) anahtar olarak seçildi
+        # row[1] -> averageRating, row[2] -> numVotes
+        ratings_db[row[0]] = (row[1], row[2])
+
 os.remove("ratings.tsv.gz")
+print("✅ Puanlar hafızaya alındı. Geçici dosya silindi.")
 
 print("⚡ Veriler birleştiriliyor ve JSON formatına yazılıyor...")
 with open(output_file, "w", encoding="utf-8") as out:
@@ -49,14 +54,14 @@ with open(output_file, "w", encoding="utf-8") as out:
         
         first = True
         for row in reader:
-            tconst = row
+            tconst = row[0]
             if tconst in ratings_db:
                 rating, votes = ratings_db[tconst]
                 
                 movie_data = {
-                    "t": row,
-                    "y": row if row != "\\N" else "",
-                    "g": row if row != "\\N" else "",
+                    "t": row[2],  # primaryTitle
+                    "y": row[5] if row[5] != "\\N" else "",  # startYear
+                    "g": row[8] if row[8] != "\\N" else "",  # genres
                     "r": rating,
                     "v": votes
                 }
